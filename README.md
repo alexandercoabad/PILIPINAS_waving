@@ -1,7 +1,7 @@
 ![](../../workflows/gds/badge.svg) ![](../../workflows/docs/badge.svg) ![](../../workflows/test/badge.svg) ![](../../workflows/fpga/badge.svg)
 
 #  Philippine flag waving
-
+ VGA Playground link: https://fpga.vga-playground.pages.dev/?repo=https://github.com/alexandercoabad/PILIPINAS_waving
 
 
 

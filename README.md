@@ -2,7 +2,21 @@
 
 #  Philippine flag waving
 
-- [Read the documentation for project](docs/info.md)
+
+
+https://github.com/user-attachments/assets/53ced418-acb1-45d7-a9ab-bcf0008380f4
+
+Link to 3D viewer: https://gds-viewer.tinytapeout.com/?model=https://alexandercoabad.github.io/PILIPINAS_waving/tinytapeout.oas&pdk=gf180mcuD
+
+
+
+<img width="692" height="646" alt="Screenshot 2026-06-26 at 10 36 23 AM" src="https://github.com/user-attachments/assets/a0f13079-3283-4c9d-8bfa-a07b5fb54768" />
+
+
+Link to VGA Playground: https://vga-playground.com/?repo=https://github.com/alexandercoabad/PILIPINAS_waving
+
+
+
 
 ## What is Tiny Tapeout?
 

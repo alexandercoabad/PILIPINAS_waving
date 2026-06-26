@@ -218,7 +218,7 @@ module tt_um_combined (
     wire [11:0] rx = (rx_raw << 2) + (rx_raw >> 1) + (rx_raw >> 4) + 191;
     wire [11:0] ry = (ry_raw * 5) + (ry_raw >> 2) + (ry_raw >> 4) + 7;
 
-    // Combinational lookup map for character segment values
+    // Hardware synthesizable combinational look-up table replacement for the initial array structure
     reg [7:0] character_bits;
     always @(*) begin
         case (digit_select)
@@ -235,8 +235,8 @@ module tt_um_combined (
         endcase
     end
 
-    // Sequential text visibility builder stage
-    wire [7:0] slot_led = (show_full_word || (current_stage >= digit_select))
+    // Sequential text visibility builder stage (Strict comparison keeps P from sticking on reset stage 0)
+    wire [7:0] slot_led = (show_full_word || (current_stage > digit_select && current_stage < 4'd9))
                           ? character_bits
                           : 8'b00000000;
 
@@ -269,7 +269,7 @@ module tt_um_combined (
                        (seg_g & slot_led[6]));
 
     // -------------------------------------------------------
-    // PIXEL COMPOSITOR
+    // PIXEL COMPOSITOR (REGISTERED FOR ASIC TIMING SIGN-OFF)
     // -------------------------------------------------------
     wire [5:0] green = 6'b001100;
 
@@ -277,7 +277,16 @@ module tt_um_combined (
     wire g_out = text_pixel ? green[3] : flag_g;
     wire b_out = text_pixel ? 1'b0 : flag_b;
 
-    assign uo_out  = {hsync, b_out, g_out, r_out, vsync, b_out, g_out, r_out};
+    reg [7:0] uo_out_reg;
+    always @(posedge clk) begin
+        if (~rst_n) begin
+            uo_out_reg <= 8'b00000000;
+        end else begin
+            uo_out_reg <= {hsync, b_out, g_out, r_out, vsync, b_out, g_out, r_out};
+        end
+    end
+
+    assign uo_out  = uo_out_reg;
     assign uio_out = 8'b00000000;
     assign uio_oe  = 8'b00000000;
 

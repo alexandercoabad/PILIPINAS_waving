@@ -6,11 +6,6 @@
 
 `default_nettype none
 
-parameter LOGO_WIDTH    = 128;
-parameter LOGO_HEIGHT   = 64;
-parameter DISPLAY_WIDTH  = 640;
-parameter DISPLAY_HEIGHT = 480;
-
 module tt_um_combined (
     input  wire [7:0] ui_in,
     output wire [7:0] uo_out,
@@ -21,6 +16,11 @@ module tt_um_combined (
     input  wire       clk,
     input  wire       rst_n
 );
+
+    parameter LOGO_WIDTH    = 128;
+    parameter LOGO_HEIGHT   = 64;
+    parameter DISPLAY_WIDTH  = 640;
+    parameter DISPLAY_HEIGHT = 480;
 
     // -------------------------------------------------------
     // VGA Sync Generator (shared)
@@ -53,12 +53,12 @@ module tt_um_combined (
 
     // Single Sine Wave Engine - logo_x[6:1] stretches the wave period over 128 pixels
     reg [5:0] wave_timer;
-    wire [5:0] wave_index = logo_x [ 6:1 ] + wave_timer;
+    wire [5:0] wave_index = logo_x[6:1] + wave_timer;
     reg signed [4:0] sine_offset;
     reg signed [11:0] extended_sine;
 
     always @(*) begin
-        case (wave_index [ 5:0 ])
+        case (wave_index[5:0])
             // Positive Half-Cycle (Crest)
             6'd0,  6'd32:     sine_offset =  5'sb00000; // 0
             6'd1,  6'd31:     sine_offset =  5'sb00001; // 1
@@ -115,7 +115,7 @@ module tt_um_combined (
 
     wire [1:0] pixel_color;
     bitmap_rom rom1 (
-        .x(logo_x [ 6:0 ]),
+        .x(logo_x[6:0]),
         .y(safe_rom_y),
         .pixel_color(pixel_color)
     );
@@ -180,21 +180,8 @@ module tt_um_combined (
     // PILIPINAS 7-SEGMENT TEXT LOGIC
     // -------------------------------------------------------
     reg [11:0] seg_counter;
-    wire [3:0] current_stage = seg_counter [ 6:3 ];
+    wire [3:0] current_stage = seg_counter[6:3];
     wire       show_full_word = (current_stage >= 4'd9);
-
-    reg [7:0] countdown [8:0];
-    initial begin
-        countdown [ 0 ] = 8'b01110011; // P
-        countdown [ 1 ] = 8'b00000110; // I
-        countdown [ 2 ] = 8'b00111000; // L
-        countdown [ 3 ] = 8'b00000110; // I
-        countdown [ 4 ] = 8'b01110011; // P
-        countdown [ 5 ] = 8'b00000110; // I
-        countdown [ 6 ] = 8'b00110111; // N
-        countdown [ 7 ] = 8'b01110111; // A
-        countdown [ 8 ] = 8'b01101101; // S
-    end
 
     always @(posedge vsync, negedge rst_n) begin
         if (~rst_n) seg_counter <= 0;
@@ -231,11 +218,27 @@ module tt_um_combined (
     wire [11:0] rx = (rx_raw << 2) + (rx_raw >> 1) + (rx_raw >> 4) + 191;
     wire [11:0] ry = (ry_raw * 5) + (ry_raw >> 2) + (ry_raw >> 4) + 7;
 
-    wire [7:0] slot_led = show_full_word
-                          ? countdown [ digit_select ]
-                          : (current_stage == digit_select)
-                            ? countdown [ current_stage ]
-                            : 8'b00000000;
+    // Combinational lookup map for character segment values
+    reg [7:0] character_bits;
+    always @(*) begin
+        case (digit_select)
+            4'd0:    character_bits = 8'b01110011; // P
+            4'd1:    character_bits = 8'b00000110; // I
+            4'd2:    character_bits = 8'b00111000; // L
+            4'd3:    character_bits = 8'b00000110; // I
+            4'd4:    character_bits = 8'b01110011; // P
+            4'd5:    character_bits = 8'b00000110; // I
+            4'd6:    character_bits = 8'b00110111; // N
+            4'd7:    character_bits = 8'b01110111; // A
+            4'd8:    character_bits = 8'b01101101; // S
+            default: character_bits = 8'b00000000;
+        endcase
+    end
+
+    // Sequential text visibility builder stage
+    wire [7:0] slot_led = (show_full_word || (current_stage >= digit_select))
+                          ? character_bits
+                          : 8'b00000000;
 
     localparam GAP = 12;
 
@@ -260,10 +263,10 @@ module tt_um_combined (
     wire seg_g = (ry > 210) & j_c0 & j_b2 & (ry < 267) & j_c3 & j_b5;
 
     wire text_pixel = display_window &&
-                      ((seg_a & slot_led [ 0 ]) | (seg_b & slot_led [ 1 ]) |
-                       (seg_c & slot_led [ 2 ]) | (seg_d & slot_led [ 3 ]) |
-                       (seg_e & slot_led [ 4 ]) | (seg_f & slot_led [ 5 ]) |
-                       (seg_g & slot_led [ 6 ]));
+                      ((seg_a & slot_led) | (seg_b & slot_led[1]) |
+                       (seg_c & slot_led[2]) | (seg_d & slot_led[3]) |
+                       (seg_e & slot_led[4]) | (seg_f & slot_led[5]) |
+                       (seg_g & slot_led[6]));
 
     // -------------------------------------------------------
     // PIXEL COMPOSITOR
@@ -271,7 +274,7 @@ module tt_um_combined (
     wire [5:0] green = 6'b001100;
 
     wire r_out = text_pixel ? 1'b0 : flag_r;
-    wire g_out = text_pixel ? green [ 3 ] : flag_g;
+    wire g_out = text_pixel ? green[3] : flag_g;
     wire b_out = text_pixel ? 1'b0 : flag_b;
 
     assign uo_out  = {hsync, b_out, g_out, r_out, vsync, b_out, g_out, r_out};
